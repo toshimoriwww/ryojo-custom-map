@@ -1,0 +1,13 @@
+# Firebase service account key
+firebase_service_account.json
+
+# SQLite database
+*.db
+
+# Python virtual environment
+venv/
+__pycache__/
+*.pyc
+
+# Excel data file
+customization_data.xlsx
