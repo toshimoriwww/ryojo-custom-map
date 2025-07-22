@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block title %}地図 - 両城のカスタマイズマップ{% endblock %}
+
+{% block content %}
+    <div id="map-container"> 
+        <div id="map"></div> <div id="sidebar">
+            <h2>ヒアリング事例一覧</h2>
+            <div id="case-list">
+                <p>データを読み込み中...</p>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}ヒアリングまとめ - 両城のカスタマイズマップ{% endblock %}
+
+{% block content %}
+    <h1>
+        {% if category_filter == 'R' %} 道路整備 事例一覧
+        {% elif category_filter == 'C' %} 自治会 事例一覧
+        {% elif category_filter == 'K' %} キーパーソン 事例一覧
+        {% elif category_filter == 'D' %} 災害 事例一覧
+        {% elif category_filter == 'O' %} その他 事例一覧
+        {% elif category_filter == 'all' %}全事例一覧
+        {% else %}ヒアリング事例一覧
+        {% endif %}
+    </h1>
+    <section class="case-summary-list">
+        <p>ここでは、ヒアリングで得られた様々な事例を一覧で確認できます。</p>
+        <div id="summary-case-grid">
+            <p>データを読み込み中...</p>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/cases_summary.js') }}"></script>
+{% endblock %}

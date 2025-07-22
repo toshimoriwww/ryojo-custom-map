@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}データ管理 - 両城のカスタマイズマップ{% endblock %}
+
+{% block content %}
+    <h1>事例の管理</h1>
+
+    <div class="admin-dashboard">
+        <div class="admin-sidebar">
+            <h2>既存事例</h2>
+            <ul id="case-list-admin">
+                <p>事例を読み込み中...</p>
+            </ul>
+        </div>
+
+        <div class="admin-main-content">
+            <div id="admin-map"></div> <div class="admin-form-area">
+                <h2 id="form-title">新しい事例の追加</h2>
+                <form id="caseForm">
+                    <input type="hidden" id="currentCaseId" name="事例"> <div class="form-group">
+                        <label for="事例">事例番号:</label> <input type="text" id="事例" name="事例" required> </div>
+                    <div class="form-group">
+                        <label for="発言者">発言者:</label>
+                        <input type="text" id="発言者" name="発言者">
+                    </div>
+                    <div class="form-group">
+                        <label for="発言内容">発言内容:</label>
+                        <textarea id="発言内容" name="発言内容" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="整備">整備:</label>
+                        <input type="text" id="整備" name="整備">
+                    </div>
+                    <div class="form-group">
+                        <label for="目的">目的:</label>
+                        <input type="text" id="目的" name="目的">
+                    </div>
+                    <div class="form-group">
+                        <label for="発意">発意:</label>
+                        <input type="text" id="発意" name="発意">
+                    </div>
+                    <div class="form-group">
+                        <label for="実行">実行:</label>
+                        <input type="text" id="実行" name="実行">
+                    </div>
+                    <div class="form-group">
+                        <label for="費用">費用:</label>
+                        <input type="text" id="費用" name="費用">
+                    </div>
+                    <div class="form-group">
+                        <label for="契機">契機:</label>
+                        <input type="text" id="契機" name="契機">
+                    </div>
+                    <div class="form-group">
+                        <label for="時期">時期:</label>
+                        <input type="text" id="時期" name="時期">
+                    </div>
+                    <div class="form-group">
+                        <label for="所有">所有:</label>
+                        <input type="text" id="所有" name="所有">
+                    </div>
+                    <div class="form-group">
+                        <label for="管理">管理:</label>
+                        <input type="text" id="管理" name="管理">
+                    </div>
+                    <div class="form-group">
+                        <label for="利用">利用:</label>
+                        <input type="text" id="利用" name="利用">
+                    </div>
+                    <div class="form-group">
+                        <label for="緯度">緯度 (地図クリックで自動入力):</label>
+                        <input type="number" step="any" id="緯度" name="緯度"> </div>
+                    <div class="form-group">
+                        <label for="経度">経度 (地図クリックで自動入力):</label>
+                        <input type="number" step="any" id="経度" name="経度"> </div>
+                    <div class="form-group">
+                        <label for="写真">画像ファイル名 (static/images/内):</label> <input type="text" id="写真" name="写真"> </div>
+                    <button type="submit" id="submitButton" class="submit-button">事例を追加</button>
+                    <button type="button" id="cancelEditButton" class="cancel-button" style="display:none;">キャンセル</button>
+                </form>
+                <div id="message" class="message-area"></div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}
