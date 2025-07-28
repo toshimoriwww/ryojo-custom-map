@@ -119,7 +119,7 @@ h1, h2, h3 {
     box-sizing: border-box;
 }
 /* main-content内の各ページコンテンツの余白 */
-.research-intro, .case-summary-list, .admin-dashboard {
+.research-intro, .case-summary-list, .admin-dashboard, .statistics-section { 
     padding: 20px; 
     max-width: 1200px; 
     margin: 0 auto; 
@@ -472,5 +472,5 @@ h1, h2, h3 {
 .message-area.info {
     background-color: #d1ecf1;
     color: #0c5460;
-    border-color: #bee5eb
+    border-color: #bee5eb;
 }

@@ -1,9 +1,9 @@
-// Mapbox のアクセストークンを設定
+// ★あなたのMapboxアクセストークンに置き換えてください！
 mapboxgl.accessToken = 'pk.eyJ1IjoidG9zaGltb3JpIiwiYSI6ImNtZGJkOXl6ejB0MncyaW9mYXhlZmtmMjgifQ.QzkoNXEgQGc-BdzSAzwr8A'; 
 
 const map = new mapboxgl.Map({
     container: 'map', 
-    style: 'mapbox://styles/mapbox/satellite-streets-v12', // 航空写真スタイル ベースマップのスタイル変更
+    style: 'mapbox://styles/mapbox/satellite-streets-v12', // 航空写真スタイル
     center: [132.55, 34.24], 
     zoom: 15, 
     pitch: 45, 
@@ -94,7 +94,7 @@ async function loadCases() {
         const cases = await response.json(); 
         console.log('取得したデータ (グループ化後):', cases); 
 
-        const caseListDiv = document.getElementById('case-list');
+        const caseListDiv = document.getElementById('case-list'); 
         caseListDiv.innerHTML = ''; 
 
         if (cases.length === 0) {
@@ -110,19 +110,50 @@ async function loadCases() {
 
             let marker = null;
             if (hasValidCoords) {
-                marker = new mapboxgl.Marker()
+                // Determine marker color based on whether it's an area-wide case
+                const markerColor = point.is_area_wide ? '#FFD700' : '#007cbf'; // Gold for area-wide, blue for specific
+
+                // ★ここからカスタムマーカーの作成
+                const el = document.createElement('div');
+                el.className = 'custom-marker';
+                el.style.backgroundColor = markerColor;
+                el.style.width = 'auto'; // 幅は内容に合わせて自動調整
+                el.style.height = 'auto'; // 高さも内容に合わせて自動調整
+                el.style.minWidth = '40px'; // 最小幅
+                el.style.minHeight = '20px'; // 最小高さ
+                el.style.padding = '5px 8px'; // パディング
+                el.style.borderRadius = '5px'; // 角丸
+                el.style.border = '1px solid white';
+                el.style.boxShadow = '0 0 5px rgba(0,0,0,0.5)';
+                el.style.cursor = 'pointer';
+                el.style.display = 'flex'; // テキストを中央に配置
+                el.style.alignItems = 'center';
+                el.style.justifyContent = 'center';
+                el.style.fontSize = '12px'; // フォントサイズ
+                el.style.fontWeight = 'bold';
+                el.style.color = 'white'; // テキスト色
+                el.style.whiteSpace = 'nowrap'; // テキストの折り返しを防ぐ
+                el.style.textOverflow = 'ellipsis'; // はみ出たテキストを...で表示
+                el.style.overflow = 'hidden'; // はみ出たテキストを隠す
+                el.style.transform = 'translate(-50%, -50%)'; // 中心をピンの座標に合わせる
+
+                // ピンに表示するテキストはpoint.name (事例名)
+                el.textContent = point.name || `事例 ${point.id}`; // 事例名がなければ事例ID
+
+                marker = new mapboxgl.Marker(el)
                     .setLngLat([lon, lat]) 
                     .addTo(map);
+                // ★ここまでカスタムマーカーの作成
             } else {
                 console.warn(`事例 ${point.id} (${point.name}) に有効な緯度・経度がありません。地図上にマーカーは表示されません。`);
             }
 
             // ポップアップの内容を作成
-            let popupContent = `<h3>${point.name}</h3>`; // タイトルは事例番号 (例: 事例 R-01)
+            let popupContent = `<h3>${point.name || '名称不明'}</h3>`; // タイトルは事例名
             if (point.image_url) { // 写真があれば表示
-                popupContent += `<img src="/static/images/${point.image_url}" alt="事例 ${point.id}" style="max-width:100%; margin-bottom: 10px;">`;
+                popupContent += `<img src="/static/images/${point.image_url}" alt="事例 ${point.id || ''}" style="max-width:100%; margin-bottom: 10px;">`;
             }
-            popupContent += point.description; // ★修正: app.pyから整形済みHTMLが来るので、そのまま挿入
+            popupContent += point.description; // app.pyから整形済みHTMLが来る
 
             const popup = new mapboxgl.Popup({ offset: 25 })
                 .setHTML(popupContent);
@@ -135,9 +166,9 @@ async function loadCases() {
             const caseItem = document.createElement('div');
             caseItem.className = 'case-item';
             caseItem.innerHTML = `
-                <h3>${point.name}</h3> 
-                ${point.image_url ? `<img src="/static/images/${point.image_url}" alt="事例 ${point.id}">` : ''} <!-- 写真を優先表示 -->
-                ${point.description} <!-- ★修正: app.pyから整形済みHTMLが来るので、そのまま挿入 -->
+                <h3>${point.name || '名称不明'}</h3> 
+                ${point.image_url ? `<img src="/static/images/${point.image_url}" alt="事例 ${point.id || ''}">` : ''} <!-- 写真を優先表示 -->
+                ${point.description} 
             `;
             caseItem.onclick = () => {
                 if (hasValidCoords) {

@@ -1,12 +1,11 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    // Extract category filter from the URL path
-    const pathParts = window.location.pathname.split('/');
-    let categoryFilter = null; 
-    if (pathParts.length > 2 && pathParts[1] === 'cases') {
-        const potentialCategory = pathParts[2];
-        if (potentialCategory && potentialCategory !== 'all') { 
-            categoryFilter = potentialCategory;
-        }
+    // URLパスからカテゴリフィルターを抽出
+    const urlParams = new URLSearchParams(window.location.search);
+    let categoryFilter = urlParams.get('category'); // Get 'category' parameter from URL
+
+    // If category is 'all' or not present, set filter to null to show all cases
+    if (categoryFilter === 'all' || categoryFilter === null) {
+        categoryFilter = null;
     }
     
     console.log("DEBUG (cases_summary.js): URLから取得したカテゴリフィルター:", categoryFilter);
@@ -49,21 +48,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             caseDiv.className = 'summary-item'; 
 
             // app.pyから分離されたプロパティを直接使用
+            // summary_attributes_html: 整備以外の概要要素
+            // statements_html: 各発言内容と紐づく詳細要素
             const summaryAttributes = caseItem.summary_attributes_html || '<p>概要情報がありません。</p>'; 
             const statements = caseItem.statements_html || '<p>発言内容がありません。</p>'; 
 
 
             caseDiv.innerHTML = `
-                <h3>${caseItem.name || '名称不明'}</h3> 
-                ${caseItem.image_url ? `<img src="/static/images/${caseItem.image_url}" alt="事例 ${caseItem.id || ''}">` : ''} 
+                <h3>${caseItem.name || '名称不明'}</h3> <!-- 事例名（Excelの「事例名」列）をタイトルとして表示 -->
+                ${caseItem.image_url ? `<img src="/static/images/${caseItem.image_url}" alt="事例 ${caseItem.id || ''}">` : ''} <!-- 写真を優先表示 -->
                 
-                ${summaryAttributes} 
+                ${summaryAttributes} <!-- 概要部分（整備以外の要素）を直接挿入 -->
                 
                 <div class="collapsible-statements">
-                    <button class="toggle-statements-btn">ヒアリング内容を非表示</button> <!-- ★修正: 初期テキストを非表示に -->
-                    <div class="statements-content" style="display: block;"> <!-- ★修正: display: block に変更 -->
+                    <button class="toggle-statements-btn">ヒアリング内容を表示</button> <!-- 初期テキストは「表示」 -->
+                    <div class="statements-content" style="display: none;"> <!-- 初期状態では非表示 -->
                         <h4>ヒアリング内容:</h4> 
-                        ${statements} 
+                        ${statements} <!-- 実際の発言内容と詳細要素 -->
                     </div>
                 </div>
 

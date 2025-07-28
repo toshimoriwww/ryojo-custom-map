@@ -6,38 +6,65 @@ import pandas as pd
 # Firebase Imports
 import firebase_admin
 from firebase_admin import credentials, firestore
-import json # For loading service account key
+import json # サービスアカウントキーの読み込みに必要
 
 # --- Configuration Settings ---
-# DATABASE = 'ryojo_customization.db' # SQLite database is no longer used for live app data
+DATABASE = 'ryojo_customization.db' # SQLite database is no longer used for live app data
+COLLECTION_NAME = 'cases' # Firestoreのコレクション名
 # ----------------------------
+
+# Unique version string for debugging
+APP_VERSION = "2025-07-26_FINAL_FIX_V8" # バージョンを更新して確認しやすくします
+
+# Firebase FirestoreクライアントをグローバルスコープでNoneに初期化
+db = None 
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
+# Helper function to get a database connection (for local SQLite fallback, if used)
+def get_db():
+    db_sqlite = getattr(g, '_database', None)
+    if db_sqlite is None:
+        # Connect to the database file
+        db_sqlite = sqlite3.connect(DATABASE)
+        # Configure row_factory to access columns by name (like a dictionary)
+        db_sqlite.row_factory = sqlite3.Row 
+    return db_sqlite
+
+# Close the database connection when the application context ends (for local SQLite fallback)
+@app.teardown_appcontext
+def close_connection(exception):
+    db_sqlite = getattr(g, '_database', None)
+    if db_sqlite is not None:
+        db_sqlite.close()
+
 # Initialize Firebase Admin SDK
 try:
-    # Firebase Admin SDKがまだ初期化されていない場合のみ初期化
     if not firebase_admin._apps:
-        # 環境変数からJSON文字列を読み込み、辞書に変換
+        # 環境変数からJSON文字列を読み込む（Renderデプロイ時を想定）
         service_account_json_str = os.environ.get('SERVICE_ACCOUNT_JSON_DATA')
         if service_account_json_str:
             cred_dict = json.loads(service_account_json_str)
             cred = credentials.Certificate(cred_dict)
         else:
-            # 環境変数が設定されていない場合はエラーを発生させる (Render デプロイ時に重要)
-            raise ValueError("SERVICE_ACCOUNT_JSON_DATA 環境変数が設定されていません。")
+            # ローカル実行時で環境変数が設定されていない場合、ファイルから読み込む
+            if os.path.exists('firebase_service_account.json'):
+                cred = credentials.Certificate('firebase_service_account.json')
+            else:
+                raise FileNotFoundError("firebase_service_account.json が見つかりません。環境変数 SERVICE_ACCOUNT_JSON_DATA も未設定です。")
         
         firebase_admin.initialize_app(cred)
-    db = firestore.client() # Firestoreクライアントを取得
+    db = firestore.client() 
     print("Firebase Admin SDK initialized successfully.")
 except Exception as e:
     print(f"Error initializing Firebase Admin SDK: {e}")
-    print("SERVICE_ACCOUNT_JSON_DATA 環境変数が正しく設定されているか確認してください。")
-    # Render デプロイ時にエラーログに表示されるように、ここで例外を再スロー
-    raise # 起動失敗の原因を明確にするため
+    print("Firebase Admin SDKの初期化に失敗しました。サービスアカウントキーを確認してください。")
+    raise 
 
 # Helper function to get Firestore DB client
 def get_firestore_db():
+    if db is None:
+        raise RuntimeError("Firestore DB client is not initialized. Check Firebase Admin SDK initialization.")
     return db
 
 # --- Routing Definitions ---
@@ -62,20 +89,97 @@ def about_page():
 def admin_page():
     return render_template('admin.html')
 
-# API endpoint to return customization cases (includes grouping logic)
-@app.route('/api/cases')
-def get_cases_api():
-    firestore_db = get_firestore_db() 
+# 新規追加: 統計ページへのルーティング
+@app.route('/statistics')
+def statistics_page():
+    return render_template('statistics.html')
+
+# API endpoint to return statistics data
+@app.route('/api/statistics')
+def get_statistics_api():
+    print("--- DEBUG START: get_statistics_api function entered ---")
+    firestore_db = get_firestore_db()
     
-    docs = firestore_db.collection('cases').stream() # Use COLLECTION_NAME directly
+    docs = firestore_db.collection(COLLECTION_NAME).stream()
     all_raw_cases = []
     for doc in docs:
         doc_data = doc.to_dict()
         doc_data['事例'] = doc.id 
         all_raw_cases.append(doc_data)
 
+    if not all_raw_cases:
+        print("DEBUG: No raw cases found for statistics.")
+        return jsonify({})
+
     df = pd.DataFrame(all_raw_cases)
 
+    statistics_data = {}
+
+    # 各カテゴリの集計
+    # '整備' (Maintenance Type)
+    seibi_counts = {}
+    for item_list in df['整備'].dropna():
+        for item in str(item_list).split(','): 
+            item = item.strip()
+            if item and item != '不明':
+                seibi_counts[item] = seibi_counts.get(item, 0) + 1
+    statistics_data['整備'] = seibi_counts
+
+    # '目的' (Purpose)
+    purpose_counts = {}
+    for item_list in df['目的'].dropna():
+        for item in str(item_list).split(','):
+            item = item.strip()
+            if item and item != '不明':
+                purpose_counts[item] = purpose_counts.get(item, 0) + 1
+    statistics_data['目的'] = purpose_counts
+
+    # '発意' (Initiative)
+    initiative_counts = {}
+    for item_list in df['発意'].dropna():
+        for item in str(item_list).split(','):
+            item = item.strip()
+            if item and item != '不明':
+                initiative_counts[item] = initiative_counts.get(item, 0) + 1
+    statistics_data['発意'] = initiative_counts
+
+    # '時期' (Period)
+    period_counts = {}
+    for item_list in df['時期'].dropna():
+        for item in str(item_list).split(','):
+            item = item.strip()
+            if item and item != '不明':
+                period_counts[item] = period_counts.get(item, 0) + 1
+    statistics_data['時期'] = period_counts
+
+    # Other categories can be added similarly (e.g., '実行', '費用', '所有', '管理', '利用')
+    
+    print(f"DEBUG: Statistics data generated: {statistics_data}")
+    return jsonify(statistics_data)
+
+
+# API endpoint to return customization cases (includes grouping logic)
+@app.route('/api/cases')
+def get_cases_api():
+    print(f"--- DEBUG START: get_cases_api function entered (Version: {APP_VERSION}) ---") 
+    
+    firestore_db = get_firestore_db() 
+    
+    docs = firestore_db.collection(COLLECTION_NAME).stream()
+    all_raw_cases = []
+    for doc in docs:
+        doc_data = doc.to_dict()
+        # '事例'カラムをドキュメントIDとして使用し、doc_dataにも含める
+        doc_data['事例'] = doc.id 
+        all_raw_cases.append(doc_data)
+
+    print(f"DEBUG: Raw cases fetched from DB: {len(all_raw_cases)} items") 
+    if not all_raw_cases:
+        print("DEBUG: No raw cases found in DB. Returning empty list.") 
+        return jsonify([])
+
+    df = pd.DataFrame(all_raw_cases)
+    
     df['緯度'] = pd.to_numeric(df['緯度'], errors='coerce')
     df['経度'] = pd.to_numeric(df['経度'], errors='coerce')
     
@@ -84,12 +188,28 @@ def get_cases_api():
     RYOJO_CENTER_LAT = 34.240  
     RYOJO_CENTER_LON = 132.550 
 
-    for case_id, group in df.groupby('事例'): 
+    try:
+        # '事例' (Case ID) でグループ化
+        grouped_df = df.groupby('事例')
+        print(f"DEBUG: GroupBy successful. Number of groups: {len(grouped_df.groups.keys())}") 
+    except Exception as e:
+        print(f"ERROR: GroupBy failed: {e}") 
+        raise 
+
+    for case_id, group in grouped_df: 
+        print(f"DEBUG: Processing case_id: '{case_id}'") 
+        
         is_area_wide_case = False 
+        description_html = "" 
 
         map_representative_row = group.dropna(subset=['緯度', '経度']).iloc[0] if not group.dropna(subset=['緯度', '経度']).empty else None
         
+        # '事例名'カラムが存在すればそれを使用、なければ '事例 {case_id}' を使用
+        case_name_from_excel = group['整備名'].iloc[0] if '整備名' in group.columns and not group['整備名'].iloc[0] is None else f"事例 {case_id}"
         display_representative_row = group.iloc[0]
+
+        # Debug: Check representative row content
+        print(f"DEBUG: display_representative_row for '{case_id}': {display_representative_row.get('発言内容', 'N/A')}") 
 
         category_map = {
             'R': '道路整備', 'C': '自治会', 'K': 'キーパーソン', 'D': '災害', 'O': 'その他'
@@ -118,21 +238,49 @@ def get_cases_api():
         if unique_managements: summary_parts.append(f"<strong>管理:</strong> {', '.join(unique_managements)}")
         if unique_usages: summary_parts.append(f"<strong>利用:</strong> {', '.join(unique_usages)}")
 
+        summary_attributes_html_final = "" 
+        if summary_parts:
+            summary_attributes_html_final = "".join([f"<p>{part}</p>" for part in summary_parts]) 
+        else:
+            summary_attributes_html_final = "<p>概要情報がありません。</p>"
+
         all_statements_html = []
         for _, r in group.iterrows():
             statement_content = r.get('発言内容', '')
+            seibi_type_for_statement = str(r.get('整備', 'その他整備')).strip() 
+            
             if statement_content and statement_content != '不明':
-                all_statements_html.append(f"<p>・{statement_content}</p>")
+                statement_details = []
+                if seibi_type_for_statement and seibi_type_for_statement != 'その他整備': statement_details.append(f"整備: {seibi_type_for_statement}")
+                if r.get('発言者') and r.get('発言者') != '不明': statement_details.append(f"発言者: {r.get('発言者')}")
+                if r.get('目的') and r.get('目的') != '不明': statement_details.append(f"目的: {r.get('目的')}")
+                if r.get('発意') and r.get('発意') != '不明': statement_details.append(f"発意: {r.get('発意')}")
+                if r.get('時期') and r.get('時期') != '不明': statement_details.append(f"時期: {r.get('時期')}")
+                
+                formatted_individual_statement = f"<p><strong>・{statement_content}</strong>"
+                if statement_details:
+                    formatted_individual_statement += f"<br>({', '.join(statement_details)})</p>"
+                else:
+                    formatted_individual_statement += "</p>"
+                
+                all_statements_html.append(formatted_individual_statement)
 
-        description_html = ""
-        if summary_parts:
-            description_html += "<p>" + "</p><p>".join(summary_parts) + "</p>"
-        
+        statements_only_html_final = ""
+        if all_statements_html:
+            statements_only_html_final = "".join(all_statements_html) 
+        else:
+            statements_only_html_final = "<p>発言内容がありません。</p>"
+
         description_html += "<h4>ヒアリング内容:</h4>"
         if all_statements_html:
             description_html += "<div>" + "".join(all_statements_html) + "</div>"
         else:
             description_html += "<p>発言内容がありません。</p>"
+
+        # Debug: Print the generated HTML content
+        print(f"DEBUG (API): Case '{case_id}' - Final summary_attributes_html: '{summary_attributes_html_final}'")
+        print(f"DEBUG (API): Case '{case_id}' - Final statements_only_html: '{statements_only_html_final}'")
+
 
         lat = None
         lon = None
@@ -147,15 +295,16 @@ def get_cases_api():
                 lat = RYOJO_CENTER_LAT
                 lon = RYOJO_CENTER_LON
                 is_area_wide_case = True 
+                print(f"DEBUG: Assigning default center to R-case {case_id} as no specific lat/lon found.")
             else:
-                pass # No pin for non-R cases without specific lat/lon
+                print(f"DEBUG: Case {case_id} (non-R or no ID) has no specific lat/lon. No pin will be placed.")
 
         first_char_of_id = case_id[0] if case_id else '不明'
         japanese_category = category_map.get(first_char_of_id, 'その他')
 
         grouped_cases.append({
             'id': case_id, 
-            'name': f"事例 {case_id}", 
+            'name': case_name_from_excel, # ★修正: '事例名'カラムの値を使用
             'subtitle': display_representative_row.get('発言内容', '代表的な発言内容なし'), 
             'description': description_html, 
             'latitude': lat, 
@@ -163,9 +312,13 @@ def get_cases_api():
             'image_url': img_url, 
             'category': first_char_of_id, 
             'display_category_jp': japanese_category, 
-            'is_area_wide': is_area_wide_case 
+            'is_area_wide': is_area_wide_case,
+            'summary_attributes_html': summary_attributes_html_final, # 概要情報のみ
+            'statements_html': statements_only_html_final # 構造化された発言内容のみ
         })
     
+    print(f"DEBUG (API): Finished processing all groups. Total grouped cases: {len(grouped_cases)}") 
+    print("--- DEBUG END: get_cases_api function exited ---") 
     return jsonify(grouped_cases)
 
 @app.route('/api/cases/add', methods=['POST'])
@@ -193,71 +346,86 @@ def add_case():
         if not 事例: 
             return jsonify({'success': False, 'message': '事例IDは必須です。'}), 400
 
-        firestore_db = get_firestore_db() 
+        db = get_db() 
         try:
-            doc_id = str(事例)
-            doc_data = {
-                '発言者': 発言者, '発言内容': 発言内容, '整備': 整備, '目的': 目的, '発意': 発意, 
-                '実行': 実行, '費用': 費用, '契機': 契機, '時期': 時期, '所有': 所有, 
-                '管理': 管理, '利用': 利用, '緯度': 緯度, '経度': 経度, '写真': 写真,
-                'date_added': firestore.SERVER_TIMESTAMP 
-            }
-            firestore_db.collection(COLLECTION_NAME).document(doc_id).set(doc_data)
+            if 'firebase_admin' in globals() and firebase_admin._apps:
+                firestore_db = get_firestore_db()
+                doc_id = str(事例)
+                doc_data = {
+                    '発言者': 発言者, '発言内容': 発言内容, '整備': 整備, '目的': 目的, '発意': 発意, 
+                    '実行': 実行, '費用': 費用, '契機': 契機, '時期': 時期, '所有': 所有, 
+                    '管理': 管理, '利用': 利用, '緯度': 緯度, '経度': 経度, '写真': 写真, 
+                    'date_added': firestore.SERVER_TIMESTAMP 
+                }
+                firestore_db.collection(COLLECTION_NAME).document(doc_id).set(doc_data)
+
+            else: 
+                conn = sqlite3.connect(DATABASE)
+                cursor = conn.cursor()
+                cursor.execute('''
+                    INSERT INTO cases (事例, 発言者, 発言内容, 整備, 目的, 発意, 実行, 費用, 契機, 時期, 所有, 管理, 利用, 緯度, 経度, 写真)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (事例, 発言者, 発言内容, 整備, 目的, 発意, 実行,費用, 契機, 時期, 所有, 管理, 利用, 緯度, 経度, 写真)) 
+                conn.commit()
+                conn.close()
 
             return jsonify({'success': True, 'message': '事例が追加されました。'})
         except Exception as e:
+            if 'firebase_admin' not in globals() or not firebase_admin._apps:
+                if 'conn' in locals() and conn:
+                    conn.rollback()
             return jsonify({'success': False, 'message': f'データの追加に失敗しました: {str(e)}'}), 500
 
-@app.route('/api/cases/update', methods=['POST'])
-def update_case():
-    if request.method == 'POST':
-        data = request.get_json()
-        
-        事例 = data.get('事例') 
-        緯度 = data.get('緯度') 
-        経度 = data.get('経度') 
-        写真 = data.get('写真') 
+    @app.route('/api/cases/update')
+    def update_case():
+        if request.method == 'POST':
+            data = request.get_json()
+            
+            事例 = data.get('事例') 
+            緯度 = data.get('緯度') 
+            経度 = data.get('経度') 
+            写真 = data.get('写真') 
 
-        if not 事例: 
-            return jsonify({'success': False, 'message': '事例IDは必須です。'}), 400
+            if not 事例: 
+                return jsonify({'success': False, 'message': '事例IDは必須です。'}), 400
 
-        firestore_db = get_firestore_db() 
-        try:
-            doc_id = str(事例)
-            update_data = {
-                '発言者': data.get('発言者'), '発言内容': data.get('発言内容'), '整備': data.get('整備'), 
-                '目的': data.get('目的'), '発意': data.get('発意'), '実行': data.get('実行'), 
-                '費用': data.get('費用'), '契機': data.get('契機'), '時期': data.get('時期'), 
-                '所有': data.get('所有'), '管理': data.get('管理'), '利用': data.get('利用'), 
-                '緯度': 緯度, '経度': 経度, '写真': 写真
-            }
-            firestore_db.collection(COLLECTION_NAME).document(doc_id).update(update_data)
+            firestore_db = get_firestore_db() 
+            try:
+                doc_id = str(事例)
+                update_data = {
+                    '発言者': data.get('発言者'), '発言内容': data.get('発言内容'), '整備': data.get('整備'), 
+                    '目的': data.get('目的'), '発意': data.get('発意'), '実行': data.get('実行'), 
+                    '費用': data.get('費用'), '契機': data.get('契機'), '時期': data.get('時期'), 
+                    '所有': data.get('所有'), '管理': data.get('管理'), '利用': data.get('利用'), 
+                    '緯度': 緯度, '経度': 経度, '写真': 写真
+                }
+                firestore_db.collection(COLLECTION_NAME).document(doc_id).update(update_data)
 
-            return jsonify({'success': True, 'message': '事例が更新されました。'})
-        except Exception as e:
-            return jsonify({'success': False, 'message': f'データの更新に失敗しました: {str(e)}'}), 500
+                return jsonify({'success': True, 'message': '事例が更新されました。'})
+            except Exception as e:
+                return jsonify({'success': False, 'message': f'データの更新に失敗しました: {str(e)}'}), 500
 
-@app.route('/api/cases/delete', methods=['POST'])
-def delete_case():
-    if request.method == 'POST':
-        data = request.get_json()
-        事例 = data.get('事例') 
+    @app.route('/api/cases/delete', methods=['POST'])
+    def delete_case():
+        if request.method == 'POST':
+            data = request.get_json()
+            事例 = data.get('事例') 
 
-        if not 事例:
-            return jsonify({'success': False, 'message': '削除する事例IDが指定されていません。'}), 400
+            if not 事例:
+                return jsonify({'success': False, 'message': '削除する事例IDが指定されていません。'}), 400
 
-        firestore_db = get_firestore_db() 
-        try:
-            doc_id = str(事例)
-            firestore_db.collection(COLLECTION_NAME).document(doc_id).delete()
+            firestore_db = get_firestore_db() 
+            try:
+                doc_id = str(事例)
+                firestore_db.collection(COLLECTION_NAME).document(doc_id).delete()
 
-            return jsonify({'success': True, 'message': f'事例 {事例} が削除されました。'})
-        except Exception as e:
-            return jsonify({'success': False, 'message': f'データの削除に失敗しました: {str(e)}'}), 500
+                return jsonify({'success': True, 'message': f'事例 {事例} が削除されました。'})
+            except Exception as e:
+                return jsonify({'success': False, 'message': f'データの削除に失敗しました: {str(e)}'}), 500
 
-@app.route('/images/<path:filename>')
-def serve_image(filename):
-    return send_from_directory(os.path.join(app.root_path, 'static', 'images'), filename)
+    @app.route('/images/<path:filename>')
+    def serve_image(filename):
+        return send_from_directory(os.path.join(app.root_path, 'static', 'images'), filename)
 
 if __name__ == '__main__':
     app.run(debug=True)

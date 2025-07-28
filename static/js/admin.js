@@ -1,5 +1,5 @@
 // Mapbox のアクセストークンを設定
-mapboxgl.accessToken = 'pk.eyJ1IjoidG9zaGltb3JpIiwiYSI6ImNtZGJkOXl6ejB0MncyaW9mYXhlZmtmMjgifQ.QzkoNXEgQGc-BdzSAzwr8A'; // ★あなたのMapboxアクセストークンに置き換える！
+mapboxgl.accessToken = 'pk.eyJ1IjoidG9zaGltb3JpIiwiYSI6ImNtZGJkOXl6ejB0MncyaW9mYXhlZmtmMjgifQ.QzkoNXEgQGc-BdzSAzwr8A'; 
 
 document.addEventListener('DOMContentLoaded', () => {
     const caseForm = document.getElementById('caseForm');
@@ -8,16 +8,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelEditButton = document.getElementById('cancelEditButton');
     const messageDiv = document.getElementById('message');
     const caseListAdmin = document.getElementById('case-list-admin');
-    const currentCaseIdInput = document.getElementById('currentCaseId'); // hidden input for current case ID
+    const currentCaseIdInput = document.getElementById('currentCaseId'); 
 
     // フォームの入力要素をすべて取得
     const inputElements = Array.from(caseForm.elements).filter(el => el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
 
     // 管理画面用のMapbox地図を初期化
     const map = new mapboxgl.Map({
-        container: 'admin-map', // admin.html内の地図コンテナID
-        style: 'mapbox://styles/mapbox/streets-v12', // 管理画面ではシンプルな地図スタイル
-        center: [132.55, 34.24], // 初期中心座標
+        container: 'admin-map', 
+        style: 'mapbox://styles/mapbox/streets-v12', 
+        center: [132.55, 34.24], 
         zoom: 12
     });
 
@@ -34,14 +34,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // 既存事例を読み込み、リストに表示
     async function loadAdminCases() {
         try {
-            const response = await fetch('/api/cases'); // 全事例データを取得
+            const response = await fetch('/api/cases'); 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const cases = await response.json();
 
-            caseListAdmin.innerHTML = ''; // リストをクリア
-            // 既存のマーカーを地図から削除
+            caseListAdmin.innerHTML = ''; 
             for (const id in currentMarkers) {
                 if (currentMarkers[id]) { 
                     currentMarkers[id].remove();
@@ -57,14 +56,12 @@ document.addEventListener('DOMContentLoaded', () => {
             cases.forEach(caseItem => {
                 const li = document.createElement('li');
                 li.innerHTML = `
-                    <span>${caseItem.name}</span>
+                    <span>${caseItem.name || caseItem.id}</span> <!-- 事例名があればそれ、なければID -->
                     <button data-id="${caseItem.id}" class="edit-button">編集</button>
                     <button data-id="${caseItem.id}" class="delete-button">削除</button>
                 `;
                 caseListAdmin.appendChild(li);
 
-                // マーカーを地図に追加（編集・削除の目印用）
-                // 緯度経度が数値で有効な場合のみマーカーを作成
                 const lat = caseItem.latitude;
                 const lon = caseItem.longitude;
                 const hasValidCoords = typeof lat === 'number' && !isNaN(lat) && typeof lon === 'number' && !isNaN(lon);
@@ -78,9 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.warn(`事例 ${caseItem.id} (${caseItem.name}) に有効な緯度・経度がありません。地図上にマーカーは表示されません。`);
                 }
 
-                // 編集ボタンのイベントリスナー
                 li.querySelector('.edit-button').addEventListener('click', () => editCase(caseItem.id));
-                // 削除ボタンのイベントリスナー
                 li.querySelector('.delete-button').addEventListener('click', () => confirmDelete(caseItem.id, caseItem.name));
             });
 
@@ -90,25 +85,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 編集ボタンがクリックされた時の処理
     async function editCase(caseId) {
         formTitle.textContent = '事例の編集';
         submitButton.textContent = '事例を更新';
         cancelEditButton.style.display = 'inline-block'; 
-        currentCaseIdInput.value = caseId; // 編集対象の事例IDを隠しフィールドに設定
+        currentCaseIdInput.value = caseId; 
 
         try {
-            const response = await fetch(`/api/case/${caseId}`); // Flaskの単一事例取得APIにアクセス
+            const response = await fetch(`/api/case/${caseId}`); 
             if (!response.ok) { 
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            const caseData = await response.json(); // APIはオブジェクトを直接返す
+            const caseData = await response.json(); 
 
             if (caseData) {
-                // フォームにデータを自動入力
                 inputElements.forEach(input => {
-                    // input.name は HTMLフォームのinputの名前 (例: '事例', '発言内容', '写真')
-                    // caseData は Flaskから取得したデータオブジェクト (例: {"事例": "R-01", "発言内容": "...", "写真": "..."})
                     if (caseData[input.name] !== undefined && caseData[input.name] !== null) { 
                         input.value = caseData[input.name];
                     } else {
@@ -117,7 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 showMessage('info', `事例 ${caseId} の情報を編集しています。`);
 
-                // 地図の中心を編集中の事例に移動 (緯度経度が有効な場合のみ)
                 const lat = caseData['緯度'];
                 const lon = caseData['経度'];
                 if (typeof lat === 'number' && !isNaN(lat) && typeof lon === 'number' && !isNaN(lon)) {
@@ -134,13 +124,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 編集キャンセルボタンの処理
     cancelEditButton.addEventListener('click', () => {
         resetForm();
         showMessage('info', '編集をキャンセルしました。');
     });
 
-    // フォームリセット処理
     function resetForm() {
         caseForm.reset(); 
         formTitle.textContent = '新しい事例の追加';
@@ -149,7 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
         currentCaseIdInput.value = ''; 
     }
 
-    // フォーム送信処理 (追加と更新を両方扱う)
     caseForm.addEventListener('submit', async (event) => {
         event.preventDefault(); 
 
@@ -172,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
             url = '/api/cases/update'; 
             successMessage = '事例が更新されました。';
             errorMessage = '事例の更新中にエラーが発生しました。';
-            data['事例'] = currentCaseIdInput.value; // 編集対象の事例IDをデータに追加
+            data['事例'] = currentCaseIdInput.value; 
         }
 
         try {
@@ -200,7 +187,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // メッセージ表示ヘルパー関数
     function showMessage(type, msg) {
         messageDiv.textContent = msg;
         messageDiv.className = `message-area ${type}`;
@@ -210,7 +196,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 5000); 
     }
 
-    // 削除機能の実装 
     async function confirmDelete(caseId, caseName) {
         if (confirm(`本当に事例 ${caseName} (${caseId}) を削除しますか？`)) {
             try {
@@ -233,6 +218,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ページロード時に事例を読み込む
     loadAdminCases();
 });

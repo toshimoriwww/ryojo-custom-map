@@ -1,3 +1,4 @@
+import sqlite3
 import firebase_admin
 from firebase_admin import credentials, firestore
 import pandas as pd
@@ -6,11 +7,11 @@ import json
 
 # --- 設定項目（ここをあなたの環境に合わせて修正してください） ---
 # Path to your Firebase service account key file
-SERVICE_ACCOUNT_KEY_PATH = 'firebase_service_account.json' # ★ダウンロードしたJSONファイル名に置き換える
-EXCEL_FILE = 'customization_data.xlsx' # ★あなたのExcelファイル名
+SERVICE_ACCOUNT_KEY_PATH = 'firebase_service_account.json' # ダウンロードしたJSONファイル名に置き換える
+EXCEL_FILE = 'customization_data.xlsx' # あなたのExcelファイル名
 COLLECTION_NAME = 'cases' # Firestoreのコレクション名（例: 'cases'）
-SHEET_NAME = 'code' # ★Excelファイル内のデータがあるシート名
-# ----------------------------
+SHEET_NAME = 'code' # ★重要: Excelファイル内のデータがあるシート名に正確に合わせる！
+# -----------------------------------------------------------------
 
 # Initialize Firebase Admin SDK
 try:
@@ -42,6 +43,7 @@ def import_data_to_firestore():
         print(f"エラー: Excelファイル '{EXCEL_FILE}' が見つかりません。ファイルパスを確認してください。")
         return
 
+    conn = None # connをNoneで初期化 (tryブロック外で定義)
     try:
         df = pd.read_excel(EXCEL_FILE, sheet_name=SHEET_NAME, header=0) 
         
@@ -61,13 +63,15 @@ def import_data_to_firestore():
             if 'date_added' not in doc_data or doc_data['date_added'] is None:
                 doc_data['date_added'] = firestore.SERVER_TIMESTAMP 
 
-            # ★修正: firestore_db を db に変更
             db.collection(COLLECTION_NAME).document(doc_id).set(doc_data) 
             
         print(f"Data imported successfully from Excel to Firestore collection '{COLLECTION_NAME}'.")
 
     except Exception as e:
         print(f"データのインポート中にエラーが発生しました: {e}")
+    finally: 
+        if conn and isinstance(conn, sqlite3.Connection): 
+            conn.close()
 
 if __name__ == '__main__':
     try:
