@@ -143,6 +143,8 @@ async function loadCases() {
                 marker = new mapboxgl.Marker(el)
                     .setLngLat([lon, lat]) 
                     .addTo(map);
+                
+                    
                 // ★ここまでカスタムマーカーの作成
             } else {
                 console.warn(`事例 ${point.id} (${point.name}) に有効な緯度・経度がありません。地図上にマーカーは表示されません。`);

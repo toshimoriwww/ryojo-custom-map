@@ -10,7 +10,7 @@ import json
 SERVICE_ACCOUNT_KEY_PATH = 'firebase_service_account.json' # ダウンロードしたJSONファイル名に置き換える
 EXCEL_FILE = 'customization_data.xlsx' # あなたのExcelファイル名
 COLLECTION_NAME = 'cases' # Firestoreのコレクション名（例: 'cases'）
-SHEET_NAME = 'code' # ★重要: Excelファイル内のデータがあるシート名に正確に合わせる！
+SHEET_NAME = 'code' # ★修正: Excelファイル内のデータがあるシート名に正確に合わせる！
 # -----------------------------------------------------------------
 
 # Initialize Firebase Admin SDK
@@ -43,7 +43,7 @@ def import_data_to_firestore():
         print(f"エラー: Excelファイル '{EXCEL_FILE}' が見つかりません。ファイルパスを確認してください。")
         return
 
-    conn = None # connをNoneで初期化 (tryブロック外で定義)
+    conn = None 
     try:
         df = pd.read_excel(EXCEL_FILE, sheet_name=SHEET_NAME, header=0) 
         
