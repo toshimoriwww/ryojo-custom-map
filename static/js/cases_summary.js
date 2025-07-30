@@ -48,11 +48,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             caseDiv.className = 'summary-item'; 
 
             // app.pyから分離されたプロパティを直接使用
-            // summary_attributes_html: 整備以外の概要要素
-            // statements_html: 各発言内容と紐づく詳細要素
             const summaryAttributes = caseItem.summary_attributes_html || '<p>概要情報がありません。</p>'; 
             const statements = caseItem.statements_html || '<p>発言内容がありません。</p>'; 
-
+            const speakersList = caseItem.speakers_list_html || ''; // 新しい発言者リストのHTML
 
             caseDiv.innerHTML = `
                 <h3>${caseItem.name || '名称不明'}</h3> <!-- 事例名（Excelの「事例名」列）をタイトルとして表示 -->
@@ -65,6 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="statements-content" style="display: none;"> <!-- 初期状態では非表示 -->
                         <h4>ヒアリング内容:</h4> 
                         ${statements} <!-- 実際の発言内容と詳細要素 -->
+                        ${speakersList ? `<p><strong>発言者:</strong> ${speakersList}</p>` : ''} <!-- 発言者リスト -->
                     </div>
                 </div>
 

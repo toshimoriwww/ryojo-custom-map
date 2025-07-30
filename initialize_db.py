@@ -10,12 +10,11 @@ import json
 SERVICE_ACCOUNT_KEY_PATH = 'firebase_service_account.json' # ダウンロードしたJSONファイル名に置き換える
 EXCEL_FILE = 'customization_data.xlsx' # あなたのExcelファイル名
 COLLECTION_NAME = 'cases' # Firestoreのコレクション名（例: 'cases'）
-SHEET_NAME = 'code' # ★修正: Excelファイル内のデータがあるシート名に正確に合わせる！
+SHEET_NAME = 'code' # ★重要: Excelファイル内のデータがあるシート名に正確に合わせる！
 # -----------------------------------------------------------------
 
 # Initialize Firebase Admin SDK
 try:
-    # Firebase Admin SDKがまだ初期化されていない場合のみ初期化
     if not firebase_admin._apps:
         cred = credentials.Certificate(SERVICE_ACCOUNT_KEY_PATH)
         firebase_admin.initialize_app(cred)
@@ -57,8 +56,9 @@ def import_data_to_firestore():
             
             doc_id = str(doc_data.get('事例')) 
 
-            if '事例' in doc_data:
-                del doc_data['事例']
+            # '事例'カラムをdoc_dataから削除しない (app.pyで参照するため)
+            # '事例名'カラムもFirestoreに保存されるように、doc_dataにそのまま含める
+            # Excelに'事例名'列がない場合はNoneになる
 
             if 'date_added' not in doc_data or doc_data['date_added'] is None:
                 doc_data['date_added'] = firestore.SERVER_TIMESTAMP 

@@ -149,7 +149,7 @@ async function loadCases() {
             } else {
                 console.warn(`事例 ${point.id} (${point.name}) に有効な緯度・経度がありません。地図上にマーカーは表示されません。`);
             }
-
+            
             // ポップアップの内容を作成
             let popupContent = `<h3>${point.name || '名称不明'}</h3>`; // タイトルは事例名
             if (point.image_url) { // 写真があれば表示

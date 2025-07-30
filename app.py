@@ -190,7 +190,7 @@ def get_cases_api():
 
     try:
         # '事例' (Case ID) でグループ化
-        grouped_df = df.groupby('事例')
+        grouped_df = df.groupby('整備名')
         print(f"DEBUG: GroupBy successful. Number of groups: {len(grouped_df.groups.keys())}") 
     except Exception as e:
         print(f"ERROR: GroupBy failed: {e}") 
@@ -327,6 +327,7 @@ def add_case():
         data = request.get_json() 
 
         事例 = data.get('事例') 
+        整備名 = data.get('整備名') # 新しく取得
         発言者 = data.get('発言者')
         発言内容 = data.get('発言内容')
         整備 = data.get('整備') 
@@ -352,6 +353,7 @@ def add_case():
                 firestore_db = get_firestore_db()
                 doc_id = str(事例)
                 doc_data = {
+                    '整備名': 整備名, # 事例名を追加
                     '発言者': 発言者, '発言内容': 発言内容, '整備': 整備, '目的': 目的, '発意': 発意, 
                     '実行': 実行, '費用': 費用, '契機': 契機, '時期': 時期, '所有': 所有, 
                     '管理': 管理, '利用': 利用, '緯度': 緯度, '経度': 経度, '写真': 写真, 
@@ -363,9 +365,9 @@ def add_case():
                 conn = sqlite3.connect(DATABASE)
                 cursor = conn.cursor()
                 cursor.execute('''
-                    INSERT INTO cases (事例, 発言者, 発言内容, 整備, 目的, 発意, 実行, 費用, 契機, 時期, 所有, 管理, 利用, 緯度, 経度, 写真)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (事例, 発言者, 発言内容, 整備, 目的, 発意, 実行,費用, 契機, 時期, 所有, 管理, 利用, 緯度, 経度, 写真)) 
+                    INSERT INTO cases (事例, 整備名, 発言者, 発言内容, 整備, 目的, 発意, 実行, 費用, 契機, 時期, 所有, 管理, 利用, 緯度, 経度, 写真)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (事例, 整備名, 発言者, 発言内容, 整備, 目的, 発意, 実行,費用, 契機, 時期, 所有, 管理, 利用, 緯度, 経度, 写真)) 
                 conn.commit()
                 conn.close()
 
@@ -393,6 +395,7 @@ def add_case():
             try:
                 doc_id = str(事例)
                 update_data = {
+                    '整備名': 整備名, 
                     '発言者': data.get('発言者'), '発言内容': data.get('発言内容'), '整備': data.get('整備'), 
                     '目的': data.get('目的'), '発意': data.get('発意'), '実行': data.get('実行'), 
                     '費用': data.get('費用'), '契機': data.get('契機'), '時期': data.get('時期'), 
