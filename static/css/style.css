@@ -119,8 +119,8 @@ h1, h2, h3 {
     box-sizing: border-box;
 }
 /* main-content内の各ページコンテンツの余白 */
-.research-intro, .case-summary-list, .admin-dashboard, .statistics-section { 
-    padding: 20px; 
+.research-intro, .case-summary-list, .admin-dashboard, .statistics-section, .customize-main-section { 
+    padding: 15px; /* 全体パディングを減らす */
     max-width: 1200px; 
     margin: 0 auto; 
 }
@@ -225,7 +225,7 @@ h1, h2, h3 {
 .case-summary-list {
     margin-top: 20px;
 }
-#summary-case-grid {
+#summary-case-grid, #customize-case-grid { 
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
     gap: 25px; 
@@ -259,6 +259,7 @@ h1, h2, h3 {
 .summary-item p {
     font-size: 0.95em;
     color: #555;
+    margin-bottom: 5px;
 }
 .summary-item img {
     max-width: 100%;
@@ -343,6 +344,9 @@ h1, h2, h3 {
     margin-right: 10px;
     font-weight: bold;
     color: #333;
+    white-space: nowrap; /* テキストの折り返しを防ぐ */
+    overflow: hidden; /* はみ出たテキストを隠す */
+    text-overflow: ellipsis; /* はみ出たテキストを...で表示 */
 }
 #case-list-admin button {
     padding: 5px 10px;
@@ -473,4 +477,213 @@ h1, h2, h3 {
     background-color: #d1ecf1;
     color: #0c5460;
     border-color: #bee5eb;
+}
+
+/* カスタムマーカーのスタイル */
+.custom-marker {
+    background-color: #007cbf; /* デフォルトのピンの色 */
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 5px;
+    border: 1px solid white;
+    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    cursor: pointer;
+    white-space: nowrap; /* テキストの折り返しを防ぐ */
+    text-overflow: ellipsis; /* はみ出たテキストを...で表示 */
+    overflow: hidden; /* はみ出たテキストを隠す */
+    display: flex; /* テキストを中央に配置 */
+    align-items: center;
+    justify-content: center;
+    min-width: 40px; /* 最小幅 */
+    height: auto; /* 高さ自動調整 */
+    transform: translate(-50%, -50%); /* ピンの中心を座標に合わせる */
+}
+
+.custom-marker.area-wide { /* 全体マーカーのスタイル */
+    background-color: #FFD700; /* ゴールド */
+    color: black;
+    border-color: #DAA520;
+}
+
+/* ★新規追加: 発意ごとのカード背景色 */
+.summary-item.initiative-individual {
+    background-color: #e6f7ff; /* 明るい青 */
+    border-color: #91d5ff;
+}
+
+.summary-item.initiative-jichikai {
+    background-color: #fffbe6; /* 明るい黄 */
+    border-color: #ffe58f;
+}
+
+/* 他の発意タイプがあればここに追加 */
+.customize-group-section {
+    margin-bottom: 30px; /* 余白を調整 */
+    padding: 15px 20px; /* パディングを調整 */
+    background-color: #f0f4f7;
+    border-radius: 10px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.06); /* シャドウを調整 */
+}
+
+.customize-group-section h2 {
+    text-align: left;
+    color: #34495e;
+    margin-top: 0;
+    margin-bottom: 15px; /* 見出し下部の余白を調整 */
+    font-size: 1.6em; /* フォントサイズを調整 */
+    border-bottom: 1px solid #ddd; /* ボーダーを細く */
+    padding-bottom: 8px; /* パディングを調整 */
+}
+
+.customize-group-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* 最小幅を少し減らしてより多くの列が入るように */
+    gap: 20px; /* ギャップを減らす */
+}
+
+/* カード内の画像に統一された高さを設定 */
+.summary-item img {
+    width: 100%;
+    height: 180px; /* 画像の高さを少し小さく */
+    object-fit: cover; 
+    margin-bottom: 10px; /* 余白を減らす */
+    border-radius: 4px;
+}
+
+.summary-item h3 {
+    font-size: 1.3em;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 8px; /* 余白を減らす */
+}
+
+.summary-item p {
+    font-size: 0.95em;
+    color: #555;
+    margin-bottom: 3px; /* 余白を減らす */
+}
+
+.summary-item strong {
+    color: #2c3e50;
+}
+
+/* 発言者リストのスタイル */
+.statements-content p strong {
+    color: #007bff; /* 発言者名を強調 */
+}
+
+/* 歴史年表のスタイル */
+.historical-timeline-section { 
+    margin-top: 30px; /* 上部の余白を調整 */
+    padding: 15px 20px; /* パディングを調整 */
+    background-color: #fcfcfc;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.historical-timeline-section h2 {
+    text-align: left;
+    color: #34495e;
+    margin-top: 0;
+    margin-bottom: 15px; 
+    font-size: 1.6em; 
+    border-bottom: 1px solid #ddd; 
+    padding-bottom: 8px; 
+}
+
+.timeline-list { /* ul要素ではなくdiv要素に適用 */
+    list-style: none; /* ulのデフォルトスタイルを解除 */
+    padding: 0;
+    margin: 0;
+}
+
+.timeline-item {
+    display: flex;
+    margin-bottom: 8px; /* 各年表アイテム間の余白を減らす */
+    align-items: flex-start; 
+}
+
+.timeline-year {
+    flex: 0 0 90px; /* 年表示の幅をさらに狭く */
+    font-weight: bold;
+    color: #007bff;
+    font-size: 0.95em; /* フォントサイズをさらに小さく */
+    padding-right: 10px; /* パディングを減らす */
+    text-align: right; 
+    position: relative;
+    line-height: 1.2; /* 行の高さを調整 */
+}
+
+.timeline-year::after {
+    content: '';
+    position: absolute;
+    right: -2px; /* ドット位置を調整 */
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px; /* ドットをさらに小さく */
+    height: 6px; /* ドットをさらに小さく */
+    background-color: #007bff;
+    border-radius: 50%;
+    border: 1px solid white;
+    box-shadow: 0 0 0 1px #007bff;
+}
+
+.timeline-content {
+    flex-grow: 1;
+    padding-left: 10px; /* パディングを減らす */
+    border-left: 1px solid #007bff; /* タイムラインの縦線を細く */
+}
+
+.timeline-content ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.timeline-content li {
+    background-color: #f5fafd; /* 背景色をより薄く */
+    border: 1px solid #ddeeff; /* ボーダーを薄く */
+    border-radius: 3px; /* 角丸をさらに小さく */
+    padding: 6px 10px; /* パディングを減らす */
+    margin-bottom: 4px; /* 各リストアイテム間の余白を減らす */
+    font-size: 0.85em; /* フォントサイズを小さく */
+    color: #333;
+    box-shadow: 0 0px 1px rgba(0,0,0,0.02); /* シャドウをさらに薄く */
+    line-height: 1.3; /* 行の高さを調整 */
+}
+
+.timeline-content li:last-child {
+    margin-bottom: 0;
+}
+
+/* モバイル対応 */
+@media (max-width: 768px) {
+    .timeline-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .timeline-year {
+        text-align: left;
+        padding-right: 0;
+        margin-bottom: 5px; /* モバイルでの余白を調整 */
+        font-size: 1em; 
+    }
+    .timeline-year::after {
+        left: 0;
+        top: auto;
+        bottom: -3px; 
+        transform: translateX(-50%);
+    }
+    .timeline-content {
+        padding-left: 0;
+        border-left: none;
+        padding-top: 5px; /* モバイルでのパディングを調整 */
+        border-top: 1px solid #007bff; 
+    }
+    .timeline-content li {
+        padding: 5px 8px; /* モバイルでのパディングを調整 */
+        font-size: 0.8em; /* モバイルでのフォントサイズをさらに小さく */
+    }
 }

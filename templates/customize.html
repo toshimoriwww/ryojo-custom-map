@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}カスタマイズ事例 - 両城のカスタマイズマップ{% endblock %}
+
+{% block content %}
+    <h1>発意が「個人」または「自治会」の事例</h1>
+
+    <!-- ★新規追加: 歴史年表表示用セクション -->
+    <section class="historical-timeline-section">
+        <h2>両城地区の整備の歴史</h2>
+        <div id="historical-timeline-container">
+            <p>歴史データを読み込み中...</p>
+        </div>
+    </section>
+
+    <section class="customize-main-section">
+        <!-- JavaScriptでグループ化されたヒアリング事例がカード形式でここに表示されます -->
+        <div id="customize-case-grid">
+            <p>データを読み込み中...</p>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    <!-- カスタマイズページ専用のJavaScriptを読み込む -->
+    <script src="{{ url_for('static', filename='js/customize.js') }}"></script>
+{% endblock %}

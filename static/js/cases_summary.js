@@ -27,6 +27,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Filter cases based on the extracted category
         const filteredCases = categoryFilter
             ? allCases.filter(caseItem => {
+                // caseItem.category は app.py で事例IDの頭文字から生成される (例: R, C)
+                // categoryFilter は URL から取得したカテゴリコード (例: R, C)
                 console.log(`  フィルタリング中: 事例ID: ${caseItem.id}, 事例カテゴリ: ${caseItem.category}, フィルター条件: ${categoryFilter}, 結果: ${caseItem.category === categoryFilter}`);
                 return caseItem.category === categoryFilter; 
               })
@@ -50,20 +52,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             // app.pyから分離されたプロパティを直接使用
             const summaryAttributes = caseItem.summary_attributes_html || '<p>概要情報がありません。</p>'; 
             const statements = caseItem.statements_html || '<p>発言内容がありません。</p>'; 
-            const speakersList = caseItem.speakers_list_html || ''; // 新しい発言者リストのHTML
+            const speakersList = caseItem.speakers_list_html || ''; 
 
             caseDiv.innerHTML = `
-                <h3>${caseItem.name || '名称不明'}</h3> <!-- 事例名（Excelの「事例名」列）をタイトルとして表示 -->
-                ${caseItem.image_url ? `<img src="/static/images/${caseItem.image_url}" alt="事例 ${caseItem.id || ''}">` : ''} <!-- 写真を優先表示 -->
+                <h3>${caseItem.name || '名称不明'}</h3> 
+                ${caseItem.image_url ? `<img src="/static/images/${caseItem.image_url}" alt="事例 ${caseItem.id || ''}">` : ''} 
                 
-                ${summaryAttributes} <!-- 概要部分（整備以外の要素）を直接挿入 -->
+                ${summaryAttributes} 
                 
                 <div class="collapsible-statements">
-                    <button class="toggle-statements-btn">ヒアリング内容を表示</button> <!-- 初期テキストは「表示」 -->
-                    <div class="statements-content" style="display: none;"> <!-- 初期状態では非表示 -->
+                    <button class="toggle-statements-btn">ヒアリング内容を表示</button> 
+                    <div class="statements-content" style="display: none;"> 
                         <h4>ヒアリング内容:</h4> 
-                        ${statements} <!-- 実際の発言内容と詳細要素 -->
-                        ${speakersList ? `<p><strong>発言者:</strong> ${speakersList}</p>` : ''} <!-- 発言者リスト -->
+                        ${statements} 
+                        ${speakersList ? `<p><strong>発言者:</strong> ${speakersList}</p>` : ''} 
                     </div>
                 </div>
 

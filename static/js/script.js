@@ -95,6 +95,10 @@ async function loadCases() {
         console.log('取得したデータ (グループ化後):', cases); 
 
         const caseListDiv = document.getElementById('case-list'); 
+        if (!caseListDiv) {
+            console.error("エラー: ID 'case-list' の要素が見つかりません。index.html を確認してください。");
+            return; 
+        }
         caseListDiv.innerHTML = ''; 
 
         if (cases.length === 0) {
@@ -102,60 +106,50 @@ async function loadCases() {
             return;
         }
 
+        // ★修正: 重複座標を追跡するためのMapをループの外で初期化
+        const placedCoordinates = new Map(); // Map<"lat,lon", count>
+
         cases.forEach(point => {
-            // 緯度経度が有効な場合のみマーカーを作成
-            const lat = point.latitude;
-            const lon = point.longitude;
+            let lat = point.latitude;
+            let lon = point.longitude;
             const hasValidCoords = typeof lat === 'number' && !isNaN(lat) && typeof lon === 'number' && !isNaN(lon);
 
-            let marker = null;
             if (hasValidCoords) {
-                // Determine marker color based on whether it's an area-wide case
-                const markerColor = point.is_area_wide ? '#FFD700' : '#007cbf'; // Gold for area-wide, blue for specific
+                const coordKey = `${lat.toFixed(6)},${lon.toFixed(6)}`; // 緯度経度を文字列キーに変換
+                let offsetCount = placedCoordinates.get(coordKey) || 0;
 
-                // ★ここからカスタムマーカーの作成
+                if (offsetCount > 0) {
+                    // ★修正: シンプルな線形オフセットを適用 (右にずらす)
+                    const offsetAmount = 0.0001; // オフセット量 (度数)。小さい値で試す
+                    lon += offsetAmount * offsetCount; // 経度を増やすことで右にずれる
+                    console.log(`DEBUG: Applying offset to ${point.name}. Original: ${point.longitude}, New: ${lon.toFixed(6)}`);
+                }
+                placedCoordinates.set(coordKey, offsetCount + 1); // カウントを増やす
+
+                const markerColor = point.is_area_wide ? '#FFD700' : '#007cbf'; 
+
                 const el = document.createElement('div');
                 el.className = 'custom-marker';
-                el.style.backgroundColor = markerColor;
-                el.style.width = 'auto'; // 幅は内容に合わせて自動調整
-                el.style.height = 'auto'; // 高さも内容に合わせて自動調整
-                el.style.minWidth = '40px'; // 最小幅
-                el.style.minHeight = '20px'; // 最小高さ
-                el.style.padding = '5px 8px'; // パディング
-                el.style.borderRadius = '5px'; // 角丸
-                el.style.border = '1px solid white';
-                el.style.boxShadow = '0 0 5px rgba(0,0,0,0.5)';
-                el.style.cursor = 'pointer';
-                el.style.display = 'flex'; // テキストを中央に配置
-                el.style.alignItems = 'center';
-                el.style.justifyContent = 'center';
-                el.style.fontSize = '12px'; // フォントサイズ
-                el.style.fontWeight = 'bold';
-                el.style.color = 'white'; // テキスト色
-                el.style.whiteSpace = 'nowrap'; // テキストの折り返しを防ぐ
-                el.style.textOverflow = 'ellipsis'; // はみ出たテキストを...で表示
-                el.style.overflow = 'hidden'; // はみ出たテキストを隠す
-                el.style.transform = 'translate(-50%, -50%)'; // 中心をピンの座標に合わせる
-
-                // ピンに表示するテキストはpoint.name (事例名)
-                el.textContent = point.name || `事例 ${point.id}`; // 事例名がなければ事例ID
+                if (point.is_area_wide) {
+                    el.classList.add('area-wide'); 
+                }
+                el.style.backgroundColor = markerColor; 
+                
+                el.textContent = point.name || `事例 ${point.id}`; 
 
                 marker = new mapboxgl.Marker(el)
                     .setLngLat([lon, lat]) 
                     .addTo(map);
-                
-                    
-                // ★ここまでカスタムマーカーの作成
             } else {
                 console.warn(`事例 ${point.id} (${point.name}) に有効な緯度・経度がありません。地図上にマーカーは表示されません。`);
             }
-            
+
             // ポップアップの内容を作成
-            let popupContent = `<h3>${point.name || '名称不明'}</h3>`; // タイトルは事例名
-            if (point.image_url) { // 写真があれば表示
+            let popupContent = `<h3>${point.name || '名称不明'}</h3>`; 
+            if (point.image_url) { 
                 popupContent += `<img src="/static/images/${point.image_url}" alt="事例 ${point.id || ''}" style="max-width:100%; margin-bottom: 10px;">`;
             }
-            popupContent += point.description; // app.pyから整形済みHTMLが来る
+            popupContent += point.description; 
 
             const popup = new mapboxgl.Popup({ offset: 25 })
                 .setHTML(popupContent);
@@ -169,13 +163,15 @@ async function loadCases() {
             caseItem.className = 'case-item';
             caseItem.innerHTML = `
                 <h3>${point.name || '名称不明'}</h3> 
-                ${point.image_url ? `<img src="/static/images/${point.image_url}" alt="事例 ${point.id || ''}">` : ''} <!-- 写真を優先表示 -->
+                ${point.image_url ? `<img src="/static/images/${point.image_url}" alt="事例 ${point.id || ''}">` : ''} 
                 ${point.description} 
             `;
             caseItem.onclick = () => {
-                if (hasValidCoords) {
-                    map.flyTo({ center: [lon, lat], zoom: 15, pitch: 45 });
-                    if (marker) {
+                const originalLat = point.latitude;
+                const originalLon = point.longitude;
+                if (typeof originalLat === 'number' && !isNaN(originalLat) && typeof originalLon === 'number' && !isNaN(originalLon)) {
+                    map.flyTo({ center: [originalLon, originalLat], zoom: 15, pitch: 45 });
+                    if (marker) { 
                         marker.getPopup().addTo(map);
                     }
                 } else {
@@ -193,10 +189,10 @@ async function loadCases() {
 
 // メッセージ表示ヘルパー関数（script.jsにも追加）
 function showMessage(type, msg) {
-    const messageArea = document.getElementById('message-area-main-map'); // メイン地図ページにメッセージ表示エリアを追加する必要がある
+    const messageArea = document.getElementById('message-area-main-map'); 
     if (!messageArea) {
         console.warn('Message area not found on main map page.');
-        alert(msg); // エリアがない場合はalertで代用
+        alert(msg); 
         return;
     }
     messageArea.textContent = msg;
@@ -206,7 +202,6 @@ function showMessage(type, msg) {
         messageArea.className = 'message-area';
     }, 5000); 
 }
-
 
 // (オプション) 地図をクリックした場所の緯度経度をコンソールに表示
 map.on('click', function(e) {
